@@ -1,7 +1,7 @@
 ﻿$(function () {
-    abp.log.debug('Index.js initialized!');
-
     var l = abp.localization.getResource('BookStore');
+    var createModal = new abp.ModalManager(abp.appPath + 'Books/CreateModal');
+    var editModal = new abp.ModalManager(abp.appPath + 'Books/EditModal');
 
     var dataTable = $('#BooksTable').DataTable(
         abp.libs.datatables.normalizeConfiguration({
@@ -13,8 +13,41 @@
             ajax: abp.libs.datatables.createAjax(acme.bookStore.books.book.getList),
             columnDefs: [
                 {
+                    title: l('Actions'),
+                    rowAction: {
+                        items:
+                            [
+                                {
+                                    text: l('Edit'),
+                                    action: function (data) {
+                                        editModal.open({ id: data.record.id });
+                                    }
+                                },
+                                {
+                                    text: l('Delete'),
+                                    confirmMessage: function (data) {
+                                        return l(
+                                            'BookDeletionConfirmationMessage',
+                                            data.record.name
+                                        );
+                                    },
+                                    action: function (data) {
+                                        acme.bookStore.books.book
+                                            .delete(data.record.id)
+                                            .then(function () {
+                                                abp.notify.info(
+                                                    l('SuccessfullyDeleted')
+                                                );
+                                                dataTable.ajax.reload();
+                                            });
+                                    }
+                                }
+                            ]
+                    }
+                },
+                {
                     title: l('Name'),
-                    data: 'name'
+                    data: "name"
                 },
                 {
                     title: l('Type'),
@@ -36,7 +69,7 @@
                 },
                 {
                     title: l('Price'),
-                    data: 'price'
+                    data: "price"
                 },
                 {
                     title: l('CreationTime'), data: "creationTime",
@@ -51,4 +84,17 @@
             ]
         })
     );
+
+    createModal.onResult(function () {
+        dataTable.ajax.reload();
+    });
+
+    editModal.onResult(function () {
+        dataTable.ajax.reload();
+    });
+
+    $('#NewBookButton').click(function (e) {
+        e.preventDefault();
+        createModal.open();
+    });
 });
